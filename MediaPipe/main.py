@@ -13,7 +13,7 @@ WIDTH, HEIGHT = 800, 600
 BALL_RADIUS = 10
 PADDLE_WIDTH, PADDLE_HEIGHT = 80, 15
 BALL_SPEED = 3
-PADDLE_SPEED = 3
+PADDLE_SPEED = 5
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
@@ -310,7 +310,7 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
             if ratio >5.5:
                 CEF_COUNTER +=1
                 # cv.putText(frame, 'Blink', (200, 50), FONTS, 1.3, utils.PINK, 2)
-                utils.colorBackgroundText(frame,  f'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
+                utils.colorBackgroundText(frame,  'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
 
             else:
                 if CEF_COUNTER>CLOSED_EYES_FRAME:
@@ -335,6 +335,8 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
             
             # Starting Voice Indicator 
             if eye_position_right=="RIGHT" and pygame.mixer.get_busy()==0 and counter_right<2:
+            # if eye_position_right=="RIGHT" and pygame.mixer.get_busy()==0:
+    
                 # starting counter 
                 counter_right+=1
                 # resetting counters 
@@ -346,6 +348,8 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
 
 
             if eye_position_right=="CENTER" and pygame.mixer.get_busy()==0 and counter_center <2:
+            # if eye_position_right=="CENTER" and pygame.mixer.get_busy()==0 :
+                
                 # starting Counter 
                 counter_center +=1
                 # resetting counters 
@@ -356,6 +360,7 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
                 direction = "Center"
             
             if eye_position_right=="LEFT" and pygame.mixer.get_busy()==0 and counter_left<2: 
+            # if eye_position_right=="LEFT" and pygame.mixer.get_busy()==0: 
                 counter_left +=1
                 # resetting counters 
                 counter_center=0
@@ -383,6 +388,10 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                cv.destroyAllWindows()
+                camera.release()
+                out.release()
+                video.export(verbose=True)
                 break
 
         screen.fill(BLACK)
@@ -426,7 +435,3 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
         
         pygame.display.flip()
         clock.tick(FPS)
-    cv.destroyAllWindows()
-    camera.release()
-    out.release()
-    video.export(verbose=True)
