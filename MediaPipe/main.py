@@ -7,6 +7,7 @@ import numpy as np
 import pygame 
 from pygame import mixer
 import random
+import vidmaker
 
 WIDTH, HEIGHT = 800, 600
 BALL_RADIUS = 10
@@ -26,6 +27,9 @@ start_voice= False
 counter_right=0
 counter_left =0
 counter_center =0 
+
+video = vidmaker.Video("OutputPong.mp4", late_export=True)
+
 # constants
 CLOSED_EYES_FRAME =3
 FONTS =cv.FONT_HERSHEY_COMPLEX
@@ -417,9 +421,12 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
 
         score_text = font.render(f"Player: {player_score} AI: {ai_score}", True, RED)
         screen.blit(score_text, (10, 10))
-
+        
+        video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
+        
         pygame.display.flip()
         clock.tick(FPS)
     cv.destroyAllWindows()
     camera.release()
     out.release()
+    video.export(verbose=True)
