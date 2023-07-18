@@ -44,16 +44,14 @@ def get_args():
 
 
 def main():
-    # Argument parsing #################################################################
-    args = get_args()
 
-    cap_device = args.device
-    cap_width = args.width
-    cap_height = args.height
+    cap_device = 0
+    cap_width = 960
+    cap_height = 540
 
-    use_static_image_mode = args.use_static_image_mode
-    min_detection_confidence = args.min_detection_confidence
-    min_tracking_confidence = args.min_tracking_confidence
+    use_static_image_mode = True
+    min_detection_confidence = 0.7
+    min_tracking_confidence = 0.5
 
     use_brect = True
 
@@ -174,9 +172,10 @@ def main():
                     debug_image,
                     brect,
                     handedness,
-                    keypoint_classifier_labels[hand_sign_id],
+                    keypoint_classifier_labels[hand_sign_id], #Shows Hand ID
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+                
         else:
             point_history.append([0, 0])
 
