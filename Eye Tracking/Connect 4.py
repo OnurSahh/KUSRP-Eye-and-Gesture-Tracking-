@@ -60,9 +60,11 @@ print(img_hieght, img_width)
 
 # video Recording setup 
 
-out = cv.VideoWriter('output1.mp4', 
+out = cv.VideoWriter('output2.mp4', 
                          cv.VideoWriter_fourcc(*'MP4V'),
                          10, (img_width, img_hieght))
+
+video = vidmaker.Video("OutputPong.mp4", late_export=True)
 # landmark detection function 
 
 def landmarksDetection(img, results, draw=False):
@@ -318,6 +320,15 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
     direction = "Center"
     while not game_over:
         
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                cv.destroyAllWindows()
+                camera.release()
+                out.release()
+                video.export(verbose=True)
+                break
+        
         frame_counter +=1 # frame counter
         ret, frame = camera.read() # getting frame from camera 
         if not ret: 
@@ -417,10 +428,6 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
             "Center":0
             }
         
-        posDict = {
-            
-            }
-        
         if direction != "Center":
             pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
             i += directionDict[direction]
@@ -492,3 +499,5 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
  
             if game_over:
                 pygame.time.wait(3000)
+        video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
+            
