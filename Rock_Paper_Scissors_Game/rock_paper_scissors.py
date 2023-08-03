@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import random
+import pygame
 import csv
 import copy
 import argparse
@@ -15,171 +15,35 @@ from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
+# Mapping dictionary
+gestures = {
+    0: 'Rock',
+    1: 'Paper',
+    2: 'Scissors'
+}
 
-def get_args():
-    parser = argparse.ArgumentParser()
+# Scoring system
+score = 0
+round_number = 0
 
-    parser.add_argument("--device", type=int, default=0)
-    parser.add_argument("--width", help='cap width', type=int, default=960)
-    parser.add_argument("--height", help='cap height', type=int, default=540)
+# Pygame window size
+width = 800
+height = 600
 
-    parser.add_argument('--use_static_image_mode', action='store_true')
-    parser.add_argument("--min_detection_confidence",
-                        help='min_detection_confidence',
-                        type=float,
-                        default=0.7)
-    parser.add_argument("--min_tracking_confidence",
-                        help='min_tracking_confidence',
-                        type=int,
-                        default=0.5)
+# Initialize Pygame
+pygame.init()
+win = pygame.display.set_mode((width, height))
 
-    args = parser.parse_args()
-
-    return args
-
-
-def main():
-    # Argument parsing #################################################################
-    args = get_args()
-
-    cap_device = args.device
-    cap_width = args.width
-    cap_height = args.height
-
-    use_static_image_mode = args.use_static_image_mode
-    min_detection_confidence = args.min_detection_confidence
-    min_tracking_confidence = args.min_tracking_confidence
-
-    use_brect = True
-
-    # Camera preparation ###############################################################
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-
-    # Model load #############################################################
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=use_static_image_mode,
-        max_num_hands=1,
-        min_detection_confidence=min_detection_confidence,
-        min_tracking_confidence=min_tracking_confidence,
-    )
-
-    keypoint_classifier = KeyPointClassifier()
-
-    point_history_classifier = PointHistoryClassifier()
-
-    # Read labels ###########################################################
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
-              encoding='utf-8-sig') as f:
-        keypoint_classifier_labels = csv.reader(f)
-        keypoint_classifier_labels = [
-            row[0] for row in keypoint_classifier_labels
-        ]
-    with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
-            encoding='utf-8-sig') as f:
-        point_history_classifier_labels = csv.reader(f)
-        point_history_classifier_labels = [
-            row[0] for row in point_history_classifier_labels
-        ]
-
-    # FPS Measurement ########################################################
-    cvFpsCalc = CvFpsCalc(buffer_len=10)
-
-    # Coordinate history #################################################################
-    history_length = 16
-    point_history = deque(maxlen=history_length)
-
-    # Finger gesture history ################################################
-    finger_gesture_history = deque(maxlen=history_length)
-
-    #  ########################################################################
-    mode = 0
-
-    while True:
-        fps = cvFpsCalc.get()
-
-        # Process Key (ESC: end) #################################################
-        key = cv.waitKey(10)
-        if key == 27:  # ESC
-            break
-        number, mode = select_mode(key, mode)
-
-        # Camera capture #####################################################
-        ret, image = cap.read()
-        if not ret:
-            break
-        image = cv.flip(image, 1)  # Mirror display
-        debug_image = copy.deepcopy(image)
-
-        # Detection implementation #############################################################
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-
-        image.flags.writeable = False
-        results = hands.process(image)
-        image.flags.writeable = True
-
-        #  ####################################################################
-        if results.multi_hand_landmarks is not None:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                  results.multi_handedness):
-                # Bounding box calculation
-                brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Landmark calculation
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
-
-                # Conversion to relative coordinates / normalized coordinates
-                pre_processed_landmark_list = pre_process_landmark(
-                    landmark_list)
-                pre_processed_point_history_list = pre_process_point_history(
-                    debug_image, point_history)
-                # Write to the dataset file
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
-
-                # Hand sign classification
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == "Not applicable":  # Point gesture
-                    point_history.append(landmark_list[8])
-                else:
-                    point_history.append([0, 0])
-
-                # Finger gesture classification
-                finger_gesture_id = 0
-                point_history_len = len(pre_processed_point_history_list)
-                if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
-
-                # Calculates the gesture IDs in the latest detection
-                finger_gesture_history.append(finger_gesture_id)
-                most_common_fg_id = Counter(
-                    finger_gesture_history).most_common()
-
-                # Drawing part
-                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-                debug_image = draw_landmarks(debug_image, landmark_list)
-                debug_image = draw_info_text(
-                    debug_image,
-                    brect,
-                    handedness,
-                    keypoint_classifier_labels[hand_sign_id],
-                    point_history_classifier_labels[most_common_fg_id[0][0]],
-                )
-        else:
-            point_history.append([0, 0])
-
-        debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
-
-        # Screen reflection #############################################################
-        cv.imshow('Hand Gesture Recognition', debug_image)
-
-    cap.release()
-    cv.destroyAllWindows()
-
+def draw_text(text, size, color, x, y, center=False):
+    font = pygame.font.Font(None, size)
+    text = font.render(text, 1, color)
+    if center:
+        text_rect = text.get_rect(center=(x, y))
+    else:
+        text_rect = text.get_rect(topleft=(x, y))
+    win.blit(text, text_rect)
+    
+#hand gesture
 
 def select_mode(key, mode):
     number = -1
@@ -538,6 +402,191 @@ def draw_info(image, fps, mode, number):
                        cv.LINE_AA)
     return image
 
+cap_device = 0
+cap_width = 960
+cap_height = 540
 
-if __name__ == '__main__':
-    main()
+use_static_image_mode = True
+min_detection_confidence = 0.7
+min_tracking_confidence = 0.5
+
+use_brect = True
+
+# Camera preparation ###############################################################
+cap = cv.VideoCapture(cap_device)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+
+# Model load #############################################################
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(
+    static_image_mode=use_static_image_mode,
+    max_num_hands=2,
+    min_detection_confidence=min_detection_confidence,
+    min_tracking_confidence=min_tracking_confidence,
+)
+
+keypoint_classifier = KeyPointClassifier()
+
+point_history_classifier = PointHistoryClassifier()
+
+# Read labels ###########################################################
+with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+          encoding='utf-8-sig') as f:
+    keypoint_classifier_labels = csv.reader(f)
+    keypoint_classifier_labels = [
+        row[0] for row in keypoint_classifier_labels
+    ]
+with open(
+        'model/point_history_classifier/point_history_classifier_label.csv',
+        encoding='utf-8-sig') as f:
+    point_history_classifier_labels = csv.reader(f)
+    point_history_classifier_labels = [
+        row[0] for row in point_history_classifier_labels
+    ]
+
+# FPS Measurement ########################################################
+cvFpsCalc = CvFpsCalc(buffer_len=10)
+
+# Coordinate history #################################################################
+history_length = 16
+point_history = deque(maxlen=history_length)
+
+# Finger gesture history ################################################
+finger_gesture_history = deque(maxlen=history_length)
+
+#  ########################################################################
+mode = 0
+
+
+# Game loop
+while True:
+    fps = cvFpsCalc.get()
+
+    # Process Key (ESC: end) #################################################
+    key = cv.waitKey(10)
+    if key == 27:  # ESC
+        break
+    number, mode = select_mode(key, mode)
+
+    # Camera capture #####################################################
+    ret, image = cap.read()
+    if not ret:
+        break
+    image = cv.flip(image, 1)  # Mirror display
+    debug_image = copy.deepcopy(image)
+
+    # Detection implementation #############################################################
+    image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+    image.flags.writeable = False
+    results = hands.process(image)
+    image.flags.writeable = True
+    action1 = None
+    #  ####################################################################
+    if results.multi_hand_landmarks is not None:
+        for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
+                                              results.multi_handedness):
+            # Bounding box calculation
+            brect = calc_bounding_rect(debug_image, hand_landmarks)
+            # Landmark calculation
+            landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+
+            # Conversion to relative coordinates / normalized coordinates
+            pre_processed_landmark_list = pre_process_landmark(
+                landmark_list)
+
+            #print(pre_processed_landmark_list)
+
+            pre_processed_point_history_list = pre_process_point_history(
+                debug_image, point_history)
+            # Write to the dataset file
+            logging_csv(number, mode, pre_processed_landmark_list,
+                        pre_processed_point_history_list)
+
+            # Hand sign classification
+            hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+            
+            if hand_sign_id == "Not applicable":  # Point gesture
+                point_history.append(landmark_list[8])
+            else:
+                point_history.append([0, 0])
+    
+            # Finger gesture classification
+            finger_gesture_id = 0
+            point_history_len = len(pre_processed_point_history_list)
+            if point_history_len == (history_length * 2):
+                finger_gesture_id = point_history_classifier(
+                    pre_processed_point_history_list)
+
+            # Calculates the gesture IDs in the latest detection
+            finger_gesture_history.append(finger_gesture_id)
+            most_common_fg_id = Counter(
+                finger_gesture_history).most_common()
+
+            # Drawing part
+            debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+            debug_image = draw_landmarks(debug_image, landmark_list)
+            debug_image = draw_info_text(
+                debug_image,
+                brect,
+                handedness,
+                keypoint_classifier_labels[hand_sign_id], #Shows Hand ID
+                point_history_classifier_labels[most_common_fg_id[0][0]],
+            )
+            action1 = keypoint_classifier_labels[hand_sign_id]
+    else:
+        point_history.append([0, 0])
+
+    print(action1)
+
+    debug_image = draw_point_history(debug_image, point_history)
+    debug_image = draw_info(debug_image, fps, mode, number)
+
+    # Screen reflection #############################################################
+    cv.imshow('Hand Gesture Recognition', debug_image)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+
+    # Countdown before each round
+    for i in range(3, 0, -1):
+        win.fill((0, 0, 0))
+        draw_text("Score: {}".format(score), 50, (255, 255, 255), 10, 10)
+        draw_text("Next Round In: {}".format(i), 70, (255, 255, 255), width / 2, height / 2, center=True)
+        pygame.display.flip()
+        pygame.time.wait(1000)
+
+    # Get player's move
+    player_move = action1
+
+    # Get computer's move and calculate score
+    computer_move = random.choice(list(gestures.values()))
+    if (player_move == 'Rock' and computer_move == 'Scissors') or \
+    (player_move == 'Paper' and computer_move == 'Rock') or \
+    (player_move == 'Scissors' and computer_move == 'Paper'):
+        score += 1
+        result_text = "You won!"
+        color = (0, 255, 0)
+    elif player_move == computer_move:
+        result_text = "It's a tie!"
+        color = (255, 255, 255)
+    else:
+        result_text = "You lost!"
+        color = (0, 0, 255)
+
+    round_number += 1
+
+    # Show game info in Pygame window
+    win.fill((0, 0, 0))
+    draw_text("Score: {}".format(score), 50, (255, 255, 255), 10, 10)
+    draw_text("Round: {}".format(round_number), 50, (255, 255, 255), width / 2, height / 2 - 100, center=True)
+    draw_text("Your move: {}".format(player_move), 50, (255, 255, 255), width / 2, height / 2 - 50, center=True)
+    draw_text("Computer's move: {}".format(computer_move), 50, (255, 255, 255), width / 2, height / 2, center=True)
+    draw_text(result_text, 50, color, width / 2, height / 2 + 100, center=True)
+
+    pygame.display.flip()
+
+    pygame.time.wait(2000)  # Wait for 2 seconds before starting next round
+
+pygame.quit()
