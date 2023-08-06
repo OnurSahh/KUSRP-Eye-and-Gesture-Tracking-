@@ -19,7 +19,7 @@ counter_right=0
 counter_left =0
 counter_center =0 
 
-video = vidmaker.Video("OutputPong.mp4", late_export=True)
+#video = vidmaker.Video("OutputPong.mp4", late_export=True)
 
 # constants
 CLOSED_EYES_FRAME =3
@@ -60,11 +60,11 @@ print(img_hieght, img_width)
 
 # video Recording setup 
 
-out = cv.VideoWriter('output2.mp4', 
-                         cv.VideoWriter_fourcc(*'MP4V'),
-                         10, (img_width, img_hieght))
+# out = cv.VideoWriter('output2.mp4', 
+                         # cv.VideoWriter_fourcc(*'MP4V'),
+                         # 10, (img_width, img_hieght))
 
-video = vidmaker.Video("OutputPong.mp4", late_export=True)
+# video = vidmaker.Video("OutputPong.mp4", late_export=True)
 # landmark detection function 
 
 def landmarksDetection(img, results, draw=False):
@@ -325,8 +325,8 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
                 pygame.quit()
                 cv.destroyAllWindows()
                 camera.release()
-                out.release()
-                video.export(verbose=True)
+                # out.release()
+                # video.export(verbose=True)
                 break
         
         frame_counter +=1 # frame counter
@@ -417,7 +417,7 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
         # writing image for thumbnail drawing shape
         # cv.imwrite(f'img/frame_{frame_counter}.png', frame)
         # wirting the video for demo purpose 
-        out.write(frame)
+        # out.write(frame)
         cv.imshow('frame', frame)
         key = cv.waitKey(2)
         
@@ -499,5 +499,5 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
  
             if game_over:
                 pygame.time.wait(3000)
-        video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
+        # video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
             

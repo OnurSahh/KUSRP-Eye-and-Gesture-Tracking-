@@ -1,23 +1,14 @@
-
+import numpy as np
+import pygame
+import sys
+import math
 import cv2 as cv
 import mediapipe as mp
 import time
-import utils, math
-import numpy as np
-import pygame 
+import utils1 as utils
 from pygame import mixer
 import random
 import vidmaker
-
-WIDTH, HEIGHT = 800, 600
-BALL_RADIUS = 10
-PADDLE_WIDTH, PADDLE_HEIGHT = 80, 15
-BALL_SPEED = 3
-PADDLE_SPEED = 5
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLACK = (0, 0, 0)
-FPS = 120
 
 # variables 
 frame_counter =0
@@ -28,7 +19,7 @@ counter_right=0
 counter_left =0
 counter_center =0 
 
-video = vidmaker.Video("OutputPong.mp4", late_export=True)
+#video = vidmaker.Video("OutputPong.mp4", late_export=True)
 
 # constants
 CLOSED_EYES_FRAME =3
@@ -69,9 +60,11 @@ print(img_hieght, img_width)
 
 # video Recording setup 
 
-#out = cv.VideoWriter('output1.mp4', 
- #                        cv.VideoWriter_fourcc(*'MP4V'),
-  #                       10, (img_width, img_hieght))
+# out = cv.VideoWriter('output2.mp4', 
+                         # cv.VideoWriter_fourcc(*'MP4V'),
+                         # 10, (img_width, img_hieght))
+
+# video = vidmaker.Video("OutputPong.mp4", late_export=True)
 # landmark detection function 
 
 def landmarksDetection(img, results, draw=False):
@@ -221,78 +214,121 @@ def pixelCounter(first_piece, second_piece, third_piece):
         color = [utils.GRAY, utils.YELLOW]
     return pos_eye, color
 
+
 #pygame
-
-class Paddle:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, WHITE, self.rect)
-
-    def move(self, speed, direction):
-        if direction == "Left":
-            self.rect.move_ip(-speed, 0)
-        if direction == "Right":
-            self.rect.move_ip(speed, 0)
-        self.rect.clamp_ip(screen.get_rect())
-
-class Ball:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x - BALL_RADIUS // 2, y - BALL_RADIUS // 2, BALL_RADIUS, BALL_RADIUS)
-        self.dx = 0
-        self.dy = -BALL_SPEED
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, WHITE, self.rect.center, BALL_RADIUS)
-
-    def move(self):
-        self.rect.move_ip(self.dx, self.dy)
-
-    def reset(self, x, y):
-        self.rect.center = (x, y)
-        self.dx = 0
-        self.dy = -BALL_SPEED
-
-    def bounce(self, paddle):
-        hit_pos = (self.rect.centerx - paddle.rect.left) / PADDLE_WIDTH
-        if hit_pos == 0.5:
-            self.dx = random.uniform(-3, 3)*2  # Decrease the current speed by 30%
-        else:
-            self.dx = BALL_SPEED * (hit_pos - 0.5) * 2  # Adjust the x-speed according to hit position
-
-
-class Barrier:
-    def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, WHITE, self.rect)
-
+ 
+BLUE = (0,0,255)
+BLACK = (0,0,0)
+RED = (255,0,0)
+YELLOW = (255,255,0)
+ 
+ROW_COUNT = 6
+COLUMN_COUNT = 7
+ 
+def create_board():
+    board = np.zeros((ROW_COUNT,COLUMN_COUNT))
+    return board
+ 
+def drop_piece(board, row, col, piece):
+    board[row][col] = piece
+ 
+def is_valid_location(board, col):
+    return board[ROW_COUNT-1][col] == 0
+ 
+def get_next_open_row(board, col):
+    for r in range(ROW_COUNT):
+        if board[r][col] == 0:
+            return r
+ 
+def print_board(board):
+    print(np.flip(board, 0))
+ 
+def winning_move(board, piece):
+    # Check horizontal locations for win
+    for c in range(COLUMN_COUNT-3):
+        for r in range(ROW_COUNT):
+            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
+                return True
+ 
+    # Check vertical locations for win
+    for c in range(COLUMN_COUNT):
+        for r in range(ROW_COUNT-3):
+            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
+                return True
+ 
+    # Check positively sloped diaganols
+    for c in range(COLUMN_COUNT-3):
+        for r in range(ROW_COUNT-3):
+            if board[r][c] == piece and board[r+1][c+1] == piece and board[r+2][c+2] == piece and board[r+3][c+3] == piece:
+                return True
+ 
+    # Check negatively sloped diaganols
+    for c in range(COLUMN_COUNT-3):
+        for r in range(3, ROW_COUNT):
+            if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
+                return True
+ 
+def draw_board(board):
+    for c in range(COLUMN_COUNT):
+        for r in range(ROW_COUNT):
+            pygame.draw.rect(screen, BLUE, (c*SQUARESIZE, r*SQUARESIZE+SQUARESIZE, SQUARESIZE, SQUARESIZE))
+            pygame.draw.circle(screen, BLACK, (int(c*SQUARESIZE+SQUARESIZE/2), int(r*SQUARESIZE+SQUARESIZE+SQUARESIZE/2)), RADIUS)
+     
+    for c in range(COLUMN_COUNT):
+        for r in range(ROW_COUNT):      
+            if board[r][c] == 1:
+                pygame.draw.circle(screen, RED, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
+            elif board[r][c] == 2: 
+                pygame.draw.circle(screen, YELLOW, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
+    pygame.display.update()
+ 
+ 
+board = create_board()
+print_board(board)
+game_over = False
+turn = 0
+ 
+#initalize pygame
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-
-player_paddle = Paddle(WIDTH // 2 - PADDLE_WIDTH // 2, HEIGHT - 2 * PADDLE_HEIGHT)
-ai_paddle = Paddle(WIDTH // 2 - PADDLE_WIDTH // 2, PADDLE_HEIGHT)
-ball = Ball(WIDTH // 2, HEIGHT // 2)
-
-left_barrier = Barrier(0, 0, BALL_RADIUS, HEIGHT)
-right_barrier = Barrier(WIDTH - BALL_RADIUS, 0, BALL_RADIUS, HEIGHT)
-
-player_score = 0
-ai_score = 0
-
-font = pygame.font.Font(None, 36)
-
-direction = "Center"
-
+ 
+#define our screen size
+SQUARESIZE = 100
+ 
+#define width and height of board
+width = COLUMN_COUNT * SQUARESIZE
+height = (ROW_COUNT+1) * SQUARESIZE
+ 
+size = (width, height)
+ 
+RADIUS = int(SQUARESIZE/2 - 5)
+ 
+screen = pygame.display.set_mode(size)
+#Calling function draw_board again
+draw_board(board)
+pygame.display.update()
+ 
+myfont = pygame.font.SysFont("monospace", 75)
+ 
 with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
 
     # starting time here 
     start_time = time.time()
     # starting Video loop here.
-    while True:
+    
+    i = 0
+    
+    direction = "Center"
+    while not game_over:
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                cv.destroyAllWindows()
+                camera.release()
+                # out.release()
+                # video.export(verbose=True)
+                break
+        
         frame_counter +=1 # frame counter
         ret, frame = camera.read() # getting frame from camera 
         if not ret: 
@@ -308,12 +344,12 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
             ratio = blinkRatio(frame, mesh_coords, RIGHT_EYE, LEFT_EYE)
             # cv.putText(frame, f'ratio {ratio}', (100, 100), FONTS, 1.0, utils.GREEN, 2)
             #utils.colorBackgroundText(frame,  f'Ratio : {round(ratio,2)}', FONTS, 0.7, (30,100),2, utils.PINK, utils.YELLOW)
-
+    
             if ratio >5.5:
                 CEF_COUNTER +=1
                 # cv.putText(frame, 'Blink', (200, 50), FONTS, 1.3, utils.PINK, 2)
                 utils.colorBackgroundText(frame,  'Blink', FONTS, 1.7, (int(frame_height/2), 100), 2, utils.YELLOW, pad_x=6, pad_y=6, )
-
+    
             else:
                 if CEF_COUNTER>CLOSED_EYES_FRAME:
                     TOTAL_BLINKS +=1
@@ -323,7 +359,7 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
             
             cv.polylines(frame,  [np.array([mesh_coords[p] for p in LEFT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
             cv.polylines(frame,  [np.array([mesh_coords[p] for p in RIGHT_EYE ], dtype=np.int32)], True, utils.GREEN, 1, cv.LINE_AA)
-
+    
             # Blink Detector Counter Completed
             right_coords = [mesh_coords[p] for p in RIGHT_EYE]
             left_coords = [mesh_coords[p] for p in LEFT_EYE]
@@ -347,8 +383,8 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
                 # playing voice 
                 voice_right.play()
                 direction = "Right"
-
-
+    
+    
             if eye_position_right=="CENTER" and pygame.mixer.get_busy()==0 and counter_center <2:
             # if eye_position_right=="CENTER" and pygame.mixer.get_busy()==0 :
                 
@@ -370,13 +406,13 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
                 # playing Voice 
                 voice_left.play
                 direction = "Left"
-
-
+    
+    
         # calculating  frame per seconds FPS
         end_time = time.time()-start_time
         fps = frame_counter/end_time
         
-
+    
         frame =utils.textWithBackground(frame,f'FPS: {round(fps,1)}',FONTS, 1.0, (30, 50), bgOpacity=0.9, textThickness=2)
         # writing image for thumbnail drawing shape
         # cv.imwrite(f'img/frame_{frame_counter}.png', frame)
@@ -385,55 +421,83 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
         cv.imshow('frame', frame)
         key = cv.waitKey(2)
         
-        #pygame
         
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                cv.destroyAllWindows()
-                camera.release()
-                # out.release()
-                #video.export(verbose=True)
-                break
-
-        screen.fill(BLACK)
-
-        player_paddle.move(PADDLE_SPEED, direction)
-        player_paddle.draw(screen)
-
-        if random.random() < 0.85:
-            if ball.rect.centerx > ai_paddle.rect.centerx:
-                ai_paddle.rect.move_ip(PADDLE_SPEED, 0)
-            elif ball.rect.centerx < ai_paddle.rect.centerx:
-                ai_paddle.rect.move_ip(-PADDLE_SPEED, 0)
-        ai_paddle.rect.clamp_ip(screen.get_rect())
-        ai_paddle.draw(screen)
-
-        ball.move()
-        ball.draw(screen)
-
-        left_barrier.draw(screen)
-        right_barrier.draw(screen)
-
-        if ball.rect.colliderect(player_paddle.rect):
-            ball.bounce(player_paddle)
-            ball.dy *= -1
-        elif ball.rect.colliderect(ai_paddle.rect):
-            ball.bounce(ai_paddle)
-            ball.dy *= -1
-        elif ball.rect.colliderect(left_barrier.rect) or ball.rect.colliderect(right_barrier.rect):
-            ball.dx *= -1
-        elif ball.rect.top < 0:
-            player_score += 1
-            ball.reset(WIDTH // 2, HEIGHT // 2)
-        elif ball.rect.bottom > HEIGHT:
-            ai_score += 1
-            ball.reset(WIDTH // 2, HEIGHT // 2)
-
-        score_text = font.render(f"Player: {player_score} AI: {ai_score}", True, RED)
-        screen.blit(score_text, (10, 10))
+        directionDict = {
+            "Left":-1,
+            "Right":1,
+            "Center":0
+            }
         
-        #video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
-        
-        pygame.display.flip()
-        clock.tick(FPS)
+        if direction != "Center":
+            pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
+            i += directionDict[direction]
+            if i < 0:
+                i = 0
+            
+            if i > 6:
+                i = 6
+            posx = (SQUARESIZE/2) + i * SQUARESIZE
+            if turn == 0:
+                pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
+            else: 
+                pygame.draw.circle(screen, YELLOW, (posx, int(SQUARESIZE/2)), RADIUS)
+            
+            time.sleep(0.5)
+        pygame.display.update()
+ 
+        if ratio >5.5:
+            pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
+            #print(event.pos)
+            # Ask for Player 1 Input
+            if turn == 0:
+                i += directionDict[direction]
+                if i < 0:
+                    i = 0
+                
+                if i > 6:
+                    i = 6
+                posx = (SQUARESIZE/2) + i * SQUARESIZE
+                col = int(math.floor(posx/SQUARESIZE))
+ 
+                if is_valid_location(board, col):
+                    row = get_next_open_row(board, col)
+                    drop_piece(board, row, col, 1)
+ 
+                    if winning_move(board, 1):
+                        label = myfont.render("Player 1 wins!!", 1, RED)
+                        screen.blit(label, (40,10))
+                        game_over = True
+            
+ 
+ 
+            # # Ask for Player 2 Input
+            else:               
+                i += directionDict[direction]
+                if i < 0:
+                    i = 0
+                
+                if i > 6:
+                    i = 6
+                posx = (SQUARESIZE/2) + i * SQUARESIZE
+                col = int(math.floor(posx/SQUARESIZE))
+ 
+                if is_valid_location(board, col):
+                    row = get_next_open_row(board, col)
+                    drop_piece(board, row, col, 2)
+ 
+                    if winning_move(board, 2):
+                        label = myfont.render("Player 2 wins!!", 1, YELLOW)
+                        screen.blit(label, (40,10))
+                        game_over = True
+            time.sleep(0.5)
+ 
+            print_board(board)
+            draw_board(board)
+ 
+            turn += 1
+            turn = turn % 2
+ 
+            if game_over:
+                pygame.time.wait(3000)
+        # video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
+            

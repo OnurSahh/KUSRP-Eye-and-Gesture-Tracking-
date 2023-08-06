@@ -1,0 +1,7 @@
+Pong: There's nothing easier than playing the pong game with your eye movements. You aim to prevent the ball from falling below your boundary by bouncing it on your plate, which is mobile in the horizontal direction. You should move the plate by either looking at the right or left side of your eyes. Your opponent is, however, artificial intelligence. Try hard to beat it.
+
+Connect 4: In this game, you aim to connect four discs either vertically or horizontally in a row. A disc is placed in the lowest place possible in a column as you release it from the top. You choose the column by moving your eyes to the right or left. Each time you look right or left and look back at the center, the disc will move one unit in the direction you looked. You should blink your eyes to drop the disc.
+
+Memory Game: In this game, you will try to memorize the sequence of random hand gestures and do the same in the correct order. To start the game, you should start with the "peace sign", in which your index and middle fingers are in the air and the rest are closed. To continue, a "thumbs up" is required, where only your thumb is in the air. In each round, you will memorize a sequence and do the same movements. To proceed to the next round, you should again do a thumbs up. You will gain points for your correct answers and will not get any points for your wrong answers.
+
+Rock-Paper-Scissors: Classic rock-paper-scissors game. Rock beats scissors, paper beats rock, scissors beat paper.

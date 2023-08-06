@@ -13,9 +13,6 @@ sys.path.append(str(path_root)) # adds main directory to paths
 
 path = Path(__file__).parents[0]
 
-sg.set_options(scaling=1.334646962233169*5)
-
-
 def get_scaling():
     # called before window created
     root = sg.tk.Tk()
@@ -37,28 +34,26 @@ window = sg.Window("Eye and Gesture Tracking", layout, resizable=True, margins=(
 my_scaling = get_scaling()      # call get_scaling()
 my_width, my_height = window.get_screen_size()  # call sg.Window.get_screen_size()
 window.maximize()
+sg.set_options(scaling=1.334646962233169*5)
 
 gameLaunches = {
     "Pong":"Pong1.py",    
     "Connect 4":"Connect 4.py",
-    "Rock Paper Scissors":"rock_paper_scissors.py",
-    "Memory Game":"Memory_Game_Integrated.py"
+    "Rock Paper Scissors":None,
+    "Memory Game":None
 }
 
 
 
 def openGuidelines():
-    column = [[sg.Image(filename='guidelines.png', key='Image')]]
-    layout = [[sg.Column(column, size=(1500, 860), scrollable=True, key='Column')]]
-    window = sg.Window('test', layout, finalize=True)
+    with open("Guidelines.txt","r") as f:
+        layout = [[sg.Multiline(f.read(), size=(my_width, my_height))]]
+    window = sg.Window("Second Window", layout, modal=True, resizable=True).finalize()
     window.maximize()
-
     while True:
-        event, _ = window.read()
-        if event == sg.WINDOW_CLOSED:
+        event, values = window.read()
+        if event == "Exit" or event == sg.WIN_CLOSED:
             break
-
-    window.close()
 
 while True:
     event, values = window.read()

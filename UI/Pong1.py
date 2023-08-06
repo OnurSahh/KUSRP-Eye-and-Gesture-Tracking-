@@ -2,7 +2,8 @@
 import cv2 as cv
 import mediapipe as mp
 import time
-import utils, math
+import utils1 as utils
+import math
 import numpy as np
 import pygame 
 from pygame import mixer

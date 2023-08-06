@@ -1,25 +1,18 @@
-
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import pygame
+from pygame.locals import *
+import numpy as np
+import sys
+import math
 import cv2 as cv
 import mediapipe as mp
 import time
-import utils, math
-import numpy as np
-import pygame 
+import utils
 from pygame import mixer
 import random
 import vidmaker
 
-WIDTH, HEIGHT = 800, 600
-BALL_RADIUS = 10
-PADDLE_WIDTH, PADDLE_HEIGHT = 80, 15
-BALL_SPEED = 3
-PADDLE_SPEED = 5
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLACK = (0, 0, 0)
-FPS = 120
-
-# variables 
 frame_counter =0
 CEF_COUNTER =0
 TOTAL_BLINKS =0
@@ -69,9 +62,11 @@ print(img_hieght, img_width)
 
 # video Recording setup 
 
-#out = cv.VideoWriter('output1.mp4', 
- #                        cv.VideoWriter_fourcc(*'MP4V'),
-  #                       10, (img_width, img_hieght))
+out = cv.VideoWriter('output2.mp4', 
+                         cv.VideoWriter_fourcc(*'MP4V'),
+                         10, (img_width, img_hieght))
+
+video = vidmaker.Video("OutputPong.mp4", late_export=True)
 # landmark detection function 
 
 def landmarksDetection(img, results, draw=False):
@@ -221,78 +216,100 @@ def pixelCounter(first_piece, second_piece, third_piece):
         color = [utils.GRAY, utils.YELLOW]
     return pos_eye, color
 
-#pygame
 
-class Paddle:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, WHITE, self.rect)
-
-    def move(self, speed, direction):
-        if direction == "Left":
-            self.rect.move_ip(-speed, 0)
-        if direction == "Right":
-            self.rect.move_ip(speed, 0)
-        self.rect.clamp_ip(screen.get_rect())
-
-class Ball:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x - BALL_RADIUS // 2, y - BALL_RADIUS // 2, BALL_RADIUS, BALL_RADIUS)
-        self.dx = 0
-        self.dy = -BALL_SPEED
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, WHITE, self.rect.center, BALL_RADIUS)
-
-    def move(self):
-        self.rect.move_ip(self.dx, self.dy)
-
-    def reset(self, x, y):
-        self.rect.center = (x, y)
-        self.dx = 0
-        self.dy = -BALL_SPEED
-
-    def bounce(self, paddle):
-        hit_pos = (self.rect.centerx - paddle.rect.left) / PADDLE_WIDTH
-        if hit_pos == 0.5:
-            self.dx = random.uniform(-3, 3)*2  # Decrease the current speed by 30%
-        else:
-            self.dx = BALL_SPEED * (hit_pos - 0.5) * 2  # Adjust the x-speed according to hit position
-
-
-class Barrier:
-    def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, WHITE, self.rect)
+# pygame
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
+cozunurluk=480,320
+ekran_mod=HWSURFACE
+baslik='Mangala'
+fps=20
+siyah=0,0,0
+mavi=0,0,255
+beyaz=255,255,255
+kirmizi=255,0,0
+ekran=pygame.display.set_mode(cozunurluk,ekran_mod)
+pygame.display.set_caption(baslik)
+font=pygame.font.Font(None,60)
+font2=pygame.font.Font(None,35)
+en=60
+boy=60
+def haznekutu(x,y):
+    return pygame.Rect(x,y,en,boy)
+hk1=[None]*6
+hk2=[None]*6
+for i in range(0,6):
+    hk1[i]=haznekutu(en*(i+1),180)
+    hk2[i]=haznekutu(en*(i+1),0)
+def yenioyun():
+    global s,oyuncu_birinci,oyunbitti
+    s=([4]*6+[0])*2
+    oyuncu_birinci=True
+    oyunbitti=False
+yenioyun()
+def hazne(sayi,x,y,k):
+    kboy=k*boy
+    pygame.draw.rect(ekran,mavi,(x,y,en,kboy))
+    pygame.draw.rect(ekran,beyaz,(x,y,en,kboy),1)
+    yazi=font.render(str(sayi),1,siyah)
+    yx,yy=yazi.get_size()
+    ekran.blit(yazi,(x+en/2-yx/2,y+kboy/2-yy/2))
+def olustur():
+    hazne(s[6],0,boy,2)
+    hazne(s[13],60*7,boy,2)
+    for i in range(0,6):
+        ii=5-i
+        hazne(s[ii],en*(i+1),0,1)
+        hazne(s[i+7],en*(i+1),180,1)
+    if oyuncu_birinci:
+        sirametin='1'
+    else:
+        sirametin='2'
+    oyuncuyazi1=font2.render('1.',1,beyaz)
+    oyuncuyazi2=font2.render('2.',1,beyaz)
+    bilgi_yazi=font2.render('Hamle sirasi '+sirametin+'. oyuncuda',1,beyaz)
+    bx,by=bilgi_yazi.get_size()
+    bilgi_yazi2=font2.render('Y: Yeni Oyun ESC: Cikis',1,beyaz)
+    bx2,by2=bilgi_yazi2.get_size()
+    ekran.blit(oyuncuyazi1,((cozunurluk[0]-35)/2,145))
+    ekran.blit(oyuncuyazi2,((cozunurluk[0]-35)/2,60))
+    ekran.blit(bilgi_yazi,((cozunurluk[0]-bx)/2,boy*4+8))
+    ekran.blit(bilgi_yazi2,((cozunurluk[0]-bx2)/2,boy*4+by+16))
+def fonkoyunbitti():
+    durum='Oyun bitti.'
+    if s[13]>s[6]:
+        durum='Oyunu 1. oyuncu kazandi.'
+    elif s[13]<s[6]:
+        durum='Oyunu 2. oyuncu kazandi.'
+    else:
+        durum='Oyun berabere.'
+    bittiyazi1=font2.render(durum,1,kirmizi)
+    x1,y1=bittiyazi1.get_size()
+    bittiyazi2=font2.render('1. Oyuncu: '+str(s[13])+' 2. Oyuncu: '+str(s[6]),1,mavi)
+    x2,y2=bittiyazi2.get_size()
+    bittiyazi3=font2.render('Y: Yeni Oyun ESC: Cikis',1,beyaz)
+    x3,y3=bittiyazi3.get_size()
+    ekran.blit(bittiyazi1,((cozunurluk[0]-x1)/2,(cozunurluk[1]-y2)/2-y1))
+    ekran.blit(bittiyazi2,((cozunurluk[0]-x2)/2,(cozunurluk[1]-y2)/2))
+    ekran.blit(bittiyazi3,((cozunurluk[0]-x3)/2,(cozunurluk[1]-y2)/2+y2))
+saat=pygame.time.Clock()
+bitti=False
 
-player_paddle = Paddle(WIDTH // 2 - PADDLE_WIDTH // 2, HEIGHT - 2 * PADDLE_HEIGHT)
-ai_paddle = Paddle(WIDTH // 2 - PADDLE_WIDTH // 2, PADDLE_HEIGHT)
-ball = Ball(WIDTH // 2, HEIGHT // 2)
-
-left_barrier = Barrier(0, 0, BALL_RADIUS, HEIGHT)
-right_barrier = Barrier(WIDTH - BALL_RADIUS, 0, BALL_RADIUS, HEIGHT)
-
-player_score = 0
-ai_score = 0
-
-font = pygame.font.Font(None, 36)
-
+i = 0
 direction = "Center"
+directionDict = {
+    "Left":-1,
+    "Right":1,
+    "Center":0
+    }
+
 
 with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confidence=0.5) as face_mesh:
 
     # starting time here 
     start_time = time.time()
     # starting Video loop here.
-    while True:
+    while not bitti:
         frame_counter +=1 # frame counter
         ret, frame = camera.read() # getting frame from camera 
         if not ret: 
@@ -381,59 +398,94 @@ with map_face_mesh.FaceMesh(min_detection_confidence =0.5, min_tracking_confiden
         # writing image for thumbnail drawing shape
         # cv.imwrite(f'img/frame_{frame_counter}.png', frame)
         # wirting the video for demo purpose 
-        # out.write(frame)
+        out.write(frame)
         cv.imshow('frame', frame)
         key = cv.waitKey(2)
         
-        #pygame
+        # pygame
+        for olay in pygame.event.get():
+            if olay.type==QUIT:
+                bitti=True
+            elif olay.type==KEYDOWN:
+                if olay.key==K_ESCAPE:
+                    bitti=True
+            elif olay.key==K_y:
+                    yenioyun()     
         
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                cv.destroyAllWindows()
-                camera.release()
-                # out.release()
-                #video.export(verbose=True)
-                break
-
-        screen.fill(BLACK)
-
-        player_paddle.move(PADDLE_SPEED, direction)
-        player_paddle.draw(screen)
-
-        if random.random() < 0.85:
-            if ball.rect.centerx > ai_paddle.rect.centerx:
-                ai_paddle.rect.move_ip(PADDLE_SPEED, 0)
-            elif ball.rect.centerx < ai_paddle.rect.centerx:
-                ai_paddle.rect.move_ip(-PADDLE_SPEED, 0)
-        ai_paddle.rect.clamp_ip(screen.get_rect())
-        ai_paddle.draw(screen)
-
-        ball.move()
-        ball.draw(screen)
-
-        left_barrier.draw(screen)
-        right_barrier.draw(screen)
-
-        if ball.rect.colliderect(player_paddle.rect):
-            ball.bounce(player_paddle)
-            ball.dy *= -1
-        elif ball.rect.colliderect(ai_paddle.rect):
-            ball.bounce(ai_paddle)
-            ball.dy *= -1
-        elif ball.rect.colliderect(left_barrier.rect) or ball.rect.colliderect(right_barrier.rect):
-            ball.dx *= -1
-        elif ball.rect.top < 0:
-            player_score += 1
-            ball.reset(WIDTH // 2, HEIGHT // 2)
-        elif ball.rect.bottom > HEIGHT:
-            ai_score += 1
-            ball.reset(WIDTH // 2, HEIGHT // 2)
-
-        score_text = font.render(f"Player: {player_score} AI: {ai_score}", True, RED)
-        screen.blit(score_text, (10, 10))
+        if direction != "Center":
+            pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
+            i += directionDict[direction]
+            if i < 0:
+                i = 0
+            
+            if i > 6:
+                i = 6
+            posx = (SQUARESIZE/2) + i * SQUARESIZE
+            if turn == 0:
+                pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
+            else: 
+                pygame.draw.circle(screen, YELLOW, (posx, int(SQUARESIZE/2)), RADIUS)
+            
+            time.sleep(0.5)
         
-        #video.update(pygame.surfarray.pixels3d(screen).swapaxes(0, 1), inverted=False)
-        
+        if ratio > 5.5:
+            if olay.button==1:
+                if oyuncu_birinci:
+                    for i in range(0,6):
+                        if hk1[i].collidepoint(olay.pos):
+                            gg=s[i+7]
+                            if gg!=0:
+                                for jj in range(1,gg+1):
+                                    s[(i+7+jj)%14]+=1
+                                    s[i+7]=0
+                                son=(i+7+jj)%14
+                                if son==13:
+                                    oyuncu_birinci=True
+                                else:
+                                    if son in range(0,6):
+                                        if s[son]%2==0:
+                                            s[13]+=s[son]
+                                            s[son]=0
+                                    else:
+                                        if s[son]==1:
+                                            s[13]+=s[12-son]+1
+                                            s[son]=0
+                                            s[12-son]=0
+                                    oyuncu_birinci=False
+                                if sum(s[7:-1])==0:
+                                    s[13]+=sum(s[:6])
+                                    s[:6]=[0]*6
+                                    oyunbitti=True
+                else:
+                    for i in range(0,6):
+                        if hk2[i].collidepoint(olay.pos):
+                            gg=s[5-i]
+                            if gg!=0:
+                                for jj in range(1,gg+1):
+                                    s[(5-i+jj)%14]+=1
+                                    s[5-i]=0
+                                son=(5-i+jj)%14
+                                if son==6:
+                                    oyuncu_birinci=False
+                                else:
+                                    if son in range(7,13):
+                                        if s[son]%2==0:
+                                            s[6]+=s[son]
+                                            s[son]=0
+                                    else:
+                                        if s[son]==1:
+                                            s[6]+=s[12-son]+1
+                                            s[son]=0
+                                            s[12-son]=0
+                                    oyuncu_birinci=True
+                                if sum(s[:6])==0:
+                                    s[6]+=sum(s[7:-1])
+                                    s[7:-1]=[0]*6
+                                    oyunbitti=True
+        ekran.fill(siyah)
+        if oyunbitti==False:
+            olustur()
+        else:
+            fonkoyunbitti()
         pygame.display.flip()
-        clock.tick(FPS)
+        saat.tick(fps)
